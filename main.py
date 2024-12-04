@@ -1,13 +1,12 @@
-import Tools.chatgpt
+import Tools.crawler
 from tts import TTS
 import argparse
 
-
-def main(username, password, year, semester):
+def main(username, password, year, semester, output_path):
     tts = TTS()
-    sentence = Tools.chatgpt.crawler_and_gpt(username, password, year, semester)
-    tts.play_sound(sentence)
-
+    sentence = Tools.crawler.craw(username, password, year, semester)
+    print(sentence)
+    tts.save_sound(sentence, output_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Process some integers.")
@@ -15,6 +14,7 @@ if __name__ == '__main__':
     parser.add_argument('password', type=str, help='비밀번호')
     parser.add_argument('year', type=str, help='년도')
     parser.add_argument('semester', type=str, help='학기')
+    parser.add_argument('output_path', type=str, help='출력 경로')
     args = parser.parse_args()
-
-    main(args.username, args.password, args.year, args.semester)
+    
+    main(args.username, args.password, args.year, args.semester, args.output_path)

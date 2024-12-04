@@ -97,7 +97,7 @@
             <option value="2022">2022</option>
             <option value="2023">2023</option>
             <option value="2024">2024</option>
-	<option value="all">전체</option>
+            <option value="all">전체</option>
         </select>
         <label for="semester">학기:</label>
         <select id="semester" name="semester">
@@ -113,23 +113,29 @@
     </div>
     <nav>
         <ul>
-            <li><a href="/delete">계정 삭제</a></li>
             <li><a href="/logout">로그아웃</a></li>
         </ul>
     </nav>
     <div id="result"></div>
+    <audio id="audio-player" controls style="display:none;">
+        <source id="audio-source" src="" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
     <script>
         document.getElementById('selectionForm').addEventListener('submit', function(event) {
             event.preventDefault();
-            
+
             const year = document.getElementById('year').value;
             const semester = document.getElementById('semester').value;
             const loadingElement = document.getElementById('loading');
             const resultElement = document.getElementById('result');
-            
+            const audioPlayer = document.getElementById('audio-player');
+            const audioSource = document.getElementById('audio-source');
+
             // 로딩 중 메시지 표시
             loadingElement.style.display = 'block';
             resultElement.textContent = '';
+            audioPlayer.style.display = 'none';
 
             fetch('/submit-selection', {
                 method: 'POST',
@@ -138,11 +144,16 @@
                 },
                 body: `year=${year}&semester=${semester}`
             })
-            .then(response => {
-                if (response.ok) {
-                    loadingElement.style.display = 'none';
+            .then(response => response.json())
+            .then(data => {
+                loadingElement.style.display = 'none';
+                if (data.audioPath) {
+                    audioSource.src = data.audioPath;
+                    audioPlayer.style.display = 'block';
+                    audioPlayer.load();
+                    audioPlayer.play();
                 } else {
-                    throw new Error('Network response was not ok. ');
+                    resultElement.textContent = '오류가 발생했습니다.';
                 }
             })
             .catch(error => {
@@ -154,3 +165,4 @@
     </script>
 </body>
 </html>
+
