@@ -3,7 +3,6 @@
 
 ### json ###
 package-lock.json
-package.json
 
 ### API_KEY ###
 .env
