@@ -200,6 +200,29 @@ oldAudioFiles.forEach(file => {
   });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+// 서버 시작
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
+
+// 주기적으로 오래된 음성 파일 삭제 (1분마다 체크)
+setInterval(() => {
+  const publicDir = path.join(__dirname, 'public');
+  const files = require('fs').readdirSync(publicDir);
+  const audioFiles = files.filter(f => f.startsWith('grade_voice_') && f.endsWith('.mp3'));
+  const oneMinuteAgo = Date.now() - (60 * 1000);
+
+  audioFiles.forEach(file => {
+    const filePath = path.join(publicDir, file);
+    const stats = require('fs').statSync(filePath);
+    if (stats.mtimeMs < oneMinuteAgo) {
+      try {
+        require('fs').unlinkSync(filePath);
+        console.log('Deleted old audio file:', file);
+      } catch (err) {
+        console.error('Error deleting file:', err);
+      }
+    }
+  });
+}, 60 * 1000);  // 1분마다 실행
