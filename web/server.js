@@ -16,6 +16,25 @@ app.use(session({
 
 app.use(express.static('public'));
 
+// 로그아웃 라우트
+app.post('/logout', (req, res) => {
+  if (!req.session) {
+    return res.json({ success: true });  // 이미 로그아웃 상태
+  }
+  
+  // 세션 제거
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error destroying session:', err);
+      return res.status(500).json({ 
+        success: false, 
+        error: '세션 제거 중 오류가 발생했습니다' 
+      });
+    }
+    res.json({ success: true });
+  });
+});
+
 // 로그인 페이지로 이동
 app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
@@ -25,11 +44,38 @@ app.get('/login', (req, res) => {
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
-  // 사용자 확인 로직 생략
-  req.session.username = username;
-  req.session.password = password;
+  // Python 스크립트로 로그인 검증만 수행
+  const scriptPath = path.join(__dirname, '..', 'main.py');
+  const pythonPath = 'python3';
 
-  res.redirect('/dashboard');
+  execFile(pythonPath, [
+    scriptPath,
+    '--verify-login',  // 로그인 검증 모드
+    username,
+    password
+  ], (error, stdout, stderr) => {
+    if (error) {
+      console.error('Error:', error);
+      console.error('Stderr:', stderr);
+      
+      // 로그인 실패 메시지 확인
+      if (stderr.includes('비밀번호 오 입력횟수')) {
+        const match = stderr.match(/비밀번호 오 입력횟수 : \((\d+)\)/);
+        const count = match ? match[1] : '알 수 없음';
+        return res.redirect('/login?error=' + encodeURIComponent(`비밀번호 오 입력횟수: (${count})\n5회 이상 입력 오류 시 로그인이 제한되며\n비밀번호 초기화 후 로그인이 가능합니다.`));
+      } else if (stderr.includes('아이디 또는 비밀번호가 맞지 않습니다')) {
+        return res.redirect('/login?error=' + encodeURIComponent('아이디 또는 비밀번호가 맞지 않습니다.'));
+      }
+      
+      return res.redirect('/login?error=' + encodeURIComponent('로그인 중 오류가 발생했습니다.'));
+    }
+
+    // 로그인 성공
+    req.session.username = username;
+    req.session.password = password;
+    req.session.gradeData = {};  // 성적 데이터를 저장할 객체 초기화
+    res.redirect('/dashboard');
+  });
 });
 
 // 대시보드 페이지로 이동
@@ -44,12 +90,6 @@ app.get('/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// 로그아웃 처리
-app.get('/logout', (req, res) => {
-  req.session.destroy();
-  res.redirect('/login');
-});
-
 // 선택 항목 제출 처리
 app.post('/submit-selection', (req, res) => {
   const { year, semester } = req.body;
@@ -60,11 +100,34 @@ app.post('/submit-selection', (req, res) => {
     return res.status(400).send('User not logged in');
   }
 
+  // 세션에 저장된 데이터가 있는지 확인
+  const cacheKey = `${year}-${semester}`;
+  if (req.session.gradeData && req.session.gradeData[cacheKey]) {
+    console.log('캐시된 데이터 사용:', cacheKey);
+    
+    // 캐시된 데이터와 음성 파일 경로 반환
+    const cachedData = req.session.gradeData[cacheKey];
+    if (!cachedData.audioPath || !require('fs').existsSync(path.join(__dirname, 'public', cachedData.audioPath))) {
+      return res.status(500).json({
+        error: 'Cached audio file not found',
+        message: '캐시된 음성 파일을 찾을 수 없습니다.'
+      });
+    }
+    
+    return res.json({
+      success: true,
+      audioPath: cachedData.audioPath,
+      pythonOutput: cachedData.pythonOutput
+    });
+  }
+
   console.log(`Selected year: ${year}, semester: ${semester}, username: ${username}`);
 
-  // main.py 파일 경로를 올바르게 지정
+  // 고유한 파일명 생성
+  const timestamp = Date.now();
+  const audioFileName = `grade_voice_${year}_${semester}_${timestamp}.mp3`;
+  const outputPath = path.join(__dirname, 'public', audioFileName);
   const scriptPath = path.join(__dirname, '..', 'main.py');
-  const outputPath = path.join(__dirname, 'public', 'grade_voice.mp3');
   const pythonPath = 'python3';
 
   execFile(pythonPath, [
@@ -88,7 +151,6 @@ app.post('/submit-selection', (req, res) => {
     
     console.log('Python script output:', stdout);
     
-    // 파일이 생성되었는지 확인
     if (!require('fs').existsSync(outputPath)) {
       console.error('Audio file was not created');
       return res.status(500).json({
@@ -97,9 +159,42 @@ app.post('/submit-selection', (req, res) => {
       });
     }
 
+    // 이전 음성 파일들 정리
+    const publicDir = path.join(__dirname, 'public');
+    const files = require('fs').readdirSync(publicDir);
+    const oldAudioFiles = files.filter(f => 
+      f.startsWith('grade_voice_') && 
+      f.endsWith('.mp3') && 
+      f !== audioFileName
+    );
+
+// 1분 이상 된 파일들 삭제
+const oneMinuteAgo = Date.now() - (60 * 1000);
+oldAudioFiles.forEach(file => {
+  const filePath = path.join(publicDir, file);
+  const stats = require('fs').statSync(filePath);
+  if (stats.mtimeMs < oneMinuteAgo) {
+    try {
+      require('fs').unlinkSync(filePath);
+      console.log('Deleted old audio file:', file);
+    } catch (err) {
+      console.error('Error deleting file:', err);
+    }
+  }
+});
+
+    // 성적 데이터를 세션에 저장
+    if (!req.session.gradeData) {
+      req.session.gradeData = {};
+    }
+    req.session.gradeData[cacheKey] = {
+      audioPath: '/' + audioFileName,
+      pythonOutput: stdout
+    };
+
     res.json({ 
       success: true,
-      audioPath: '/grade_voice.mp3',
+      audioPath: '/' + audioFileName,
       pythonOutput: stdout 
     });
   });

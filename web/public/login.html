@@ -25,6 +25,7 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
+            width: 300px;
         }
         label {
             display: block;
@@ -47,16 +48,41 @@
         button:hover {
             background-color: #0056b3;
         }
+        .error-message {
+            color: #dc3545;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            width: 90%;
+            white-space: pre-line;
+            text-align: center;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <h2>로그인</h2>
     <form action="/login" method="POST">
-        <label for="username" >학번:</label>
-        <input type="text" id="username" name="username" placeholder = "학번" required>
-        <label for="password" >비밀번호:</label>
-        <input type="password" id="password" name="password" placeholder = "비밀번호" required>
+        <div id="error-box" class="error-message"></div>
+        <label for="username">학번:</label>
+        <input type="text" id="username" name="username" placeholder="학번" required>
+        <label for="password">비밀번호:</label>
+        <input type="password" id="password" name="password" placeholder="비밀번호" required>
         <button type="submit">로그인</button>
     </form>
+
+    <script>
+        // URL에서 에러 메시지 파라미터 확인
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorMessage = urlParams.get('error');
+        
+        if (errorMessage) {
+            const errorBox = document.getElementById('error-box');
+            errorBox.textContent = decodeURIComponent(errorMessage);
+            errorBox.style.display = 'block';
+        }
+    </script>
 </body>
 </html>

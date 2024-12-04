@@ -86,6 +86,38 @@ def craw(id, passwd, year, semester):
 def filter_strings(arr,selection):
     return [s for s in arr if f"{selection}" in s]
 
+def verify_login(id, passwd):
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(options=options)
+
+    try:
+        URL = "https://sso.daegu.ac.kr/dgusso/ext/tigersstd/login_form.do?Return_Url=https://tigersstd.daegu.ac.kr/nxrun/ssoLogin.jsp"
+        driver.get(URL)
+        print("로그인 검증 시작")
+
+        # ID 입력
+        driver.find_element(By.XPATH, '//*[@id="usr_id"]').click()
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="usr_id"]')))
+        driver.find_element(By.XPATH, '//*[@id="usr_id"]').send_keys(id)
+
+        # 비밀번호 입력
+        driver.find_element(By.XPATH, '//*[@id="usr_pw"]').click()
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="usr_pw"]')))
+        driver.find_element(By.XPATH, '//*[@id="usr_pw"]').send_keys(passwd)
+
+        # 로그인 버튼 클릭
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="idLoginForm"]/div[1]/div[3]/button')))
+        driver.find_element(By.XPATH, '//*[@id="idLoginForm"]/div[1]/div[3]/button').click()
+
+        # 로그인 성공 확인
+        WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, '//*[@id="Mainframe.VFrameSet.TopFrame.form.mnTop.item1:text"]')))
+        return True
+
+    except Exception as e:
+        raise e
+    finally:
+        driver.quit()
 
 def last_string_check(word):    #아스키(ASCII) 코드 공식에 따라 입력된 단어의 마지막 글자 받침 유무를 판단해서 뒤에 붙는 조사를 리턴하는 함수
     last = word[-1]
