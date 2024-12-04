@@ -5,15 +5,26 @@ const { execFile } = require('child_process');
 const path = require('path');
 
 const app = express();
+
 const PORT = 3001;
 
-app.use(bodyParser.urlencoded({ extended: true }));
+// 세션 설정
 app.use(session({
-  secret: 'mysecret',
+  secret: process.env.SESSION_SECRET || 'mysecret',
   resave: false,
-  saveUninitialized: true
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 1000 * 60 * 60 // 1시간
+  }
 }));
 
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// JSON 파싱
+app.use(express.json());
+
+// 정적 파일 서빙
 app.use(express.static('public'));
 
 // 로그아웃 라우트
@@ -202,8 +213,10 @@ oldAudioFiles.forEach(file => {
 
 // 서버 시작
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+const host = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
+
+app.listen(port, host, () => {
+  console.log(`Server is running on ${host}:${port}`);
 });
 
 // 주기적으로 오래된 음성 파일 삭제 (1분마다 체크)
