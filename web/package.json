@@ -2,9 +2,9 @@
   "name": "tigers-crawler",
   "version": "1.0.0",
   "description": "Daegu University Grade Crawler",
-  "main": "web/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node web/server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
