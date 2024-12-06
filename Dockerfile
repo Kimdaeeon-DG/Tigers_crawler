@@ -12,6 +12,11 @@ RUN apt-get update && \
     chromium-driver \
     && rm -rf /var/lib/apt/lists/*
 
+# Chrome 실행을 위한 추가 패키지 설치
+RUN apt-get update && apt-get install -y \
+    xvfb \
+    && rm -rf /var/lib/apt/lists/*
+
 # 작업 디렉토리 설정
 WORKDIR /app
 
@@ -33,6 +38,10 @@ EXPOSE 3000
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV PYTHONUNBUFFERED=1
+ENV DISPLAY=:99
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROME_PATH=/usr/lib/chromium/
+ENV CHROMIUM_FLAGS="--headless --disable-gpu --no-sandbox --disable-dev-shm-usage"
 
 # 실행 명령
 CMD ["node", "web/server.js"]

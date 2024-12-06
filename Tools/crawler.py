@@ -6,11 +6,22 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import time
 
-def craw(id, passwd, year, semester):
+def get_driver():
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    options.add_argument('window-size=5000, 5000')
-    driver = webdriver.Chrome(options=options)
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    
+    try:
+        driver = webdriver.Chrome(options=options)
+        return driver
+    except Exception as e:
+        print(f"Error creating Chrome driver: {str(e)}")
+        raise e
+
+def craw(id, passwd, year, semester):
+    driver = get_driver()
     driver.set_window_size(5000, 5000)
 
 
@@ -87,9 +98,7 @@ def filter_strings(arr,selection):
     return [s for s in arr if f"{selection}" in s]
 
 def verify_login(id, passwd):
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    driver = webdriver.Chrome(options=options)
+    driver = get_driver()
 
     try:
         URL = "https://sso.daegu.ac.kr/dgusso/ext/tigersstd/login_form.do?Return_Url=https://tigersstd.daegu.ac.kr/nxrun/ssoLogin.jsp"
