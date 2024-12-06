@@ -3,15 +3,17 @@ FROM node:16
 
 # Python 및 Chrome 설치
 RUN apt-get update && apt-get install -y \
-    python3.10 \
-    python3.10-distutils \
+    python3.9 \
+    python3.9-distutils \
     python3-pip \
     chromium \
     chromium-driver \
     && rm -rf /var/lib/apt/lists/*
 
-# pip 업그레이드
-RUN python3 -m pip install --upgrade pip
+# pip 업그레이드 및 버전 확인
+RUN python3 -m pip install --upgrade pip && \
+    python3 --version && \
+    pip3 --version
 
 # 작업 디렉토리 설정
 WORKDIR /app
@@ -29,6 +31,10 @@ COPY . .
 
 # 포트 설정
 EXPOSE 3000
+
+# 환경 변수 설정
+ENV NODE_ENV=production
+ENV PORT=3000
 
 # 실행 명령
 CMD ["node", "web/server.js"]
