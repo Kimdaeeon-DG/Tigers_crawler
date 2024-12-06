@@ -25,7 +25,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
 
 // 정적 파일 서빙
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+// 루트 경로를 로그인 페이지로 리다이렉트
+app.get('/', (req, res) => {
+  res.redirect('/login');
+});
 
 // 로그아웃 라우트
 app.post('/logout', (req, res) => {
