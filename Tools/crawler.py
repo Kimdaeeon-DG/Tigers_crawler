@@ -1,8 +1,8 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 
 import time
 
@@ -24,6 +24,52 @@ def get_driver():
     except Exception as e:
         print(f"Error creating Chrome driver: {str(e)}")
         raise e
+
+def verify_login(id, passwd):
+    driver = get_driver()
+    print("Starting login verification...")
+
+    try:
+        URL = "https://sso.daegu.ac.kr/dgusso/ext/tigersstd/login_form.do?Return_Url=https://tigersstd.daegu.ac.kr/nxrun/ssoLogin.jsp"
+        print(f"Navigating to URL: {URL}")
+        driver.get(URL)
+        
+        print("Waiting for login form...")
+        time.sleep(3)  
+
+        print("Finding login elements...")
+        id_input = driver.find_element(By.ID, 'id')
+        pw_input = driver.find_element(By.ID, 'passwd')
+        
+        print(f"Entering credentials for ID: {id}")
+        id_input.send_keys(id)
+        pw_input.send_keys(passwd)
+        
+        print("Clicking login button...")
+        driver.find_element(By.CLASS_NAME, 'btn_login').click()
+        
+        print("Waiting for login process...")
+        time.sleep(5)  
+        
+        print("Current URL:", driver.current_url)
+        
+        # 로그인 실패 확인
+        error_elements = driver.find_elements(By.CLASS_NAME, 'error')
+        if error_elements:
+            error_text = error_elements[0].text
+            print(f"Login error detected: {error_text}")
+            raise Exception(error_text or "로그인에 실패했습니다.")
+            
+        print("Login successful!")
+        return True
+        
+    except Exception as e:
+        print(f"Login verification failed: {str(e)}")
+        raise e
+    
+    finally:
+        print("Closing browser...")
+        driver.quit()
 
 def craw(id, passwd, year, semester):
     driver = get_driver()
@@ -83,11 +129,10 @@ def craw(id, passwd, year, semester):
             return answer
         else:
             selection = str(year)+"년도 "+str(semester) + "학기"
-            answer = filter_strings(answer,selection)
+            answer = filter_strings(answer, selection)
             title = ""
             mystr = ""
             for item in answer:
-                #'2023년도 2학기 빅컨셉+ 90 A'로 되어있기에 분리함.
                 contents = item.split(" ")
                 if (len(title) <= 0):
                     title = contents[0] +" " + contents[1] + "의 성적을 안내드리겠습니다." 
@@ -97,66 +142,29 @@ def craw(id, passwd, year, semester):
                 grade = contents[4] #등급
                 if point == "10":
                     mystr += subject + last_string_check(subject) + " " + "패스등급을 받았습니다"
-                else :
+                else:
                     mystr += subject + last_string_check(subject) + " " + point + "점을 맞았고" + grade + "의 등급을 받았습니다."
             new_answer = title + mystr 
 
         print("크롤링 종료")
         return new_answer
 
-def filter_strings(arr,selection):
-    return [s for s in arr if f"{selection}" in s]
-
-def verify_login(id, passwd):
-    driver = get_driver()
-    print("Starting login verification...")
-
-    try:
-        URL = "https://sso.daegu.ac.kr/dgusso/ext/tigersstd/login_form.do?Return_Url=https://tigersstd.daegu.ac.kr/nxrun/ssoLogin.jsp"
-        print(f"Navigating to URL: {URL}")
-        driver.get(URL)
-        
-        print("Waiting for login form...")
-        time.sleep(3)  
-
-        print("Finding login elements...")
-        id_input = driver.find_element(By.ID, 'id')
-        pw_input = driver.find_element(By.ID, 'passwd')
-        
-        print(f"Entering credentials for ID: {id}")
-        id_input.send_keys(id)
-        pw_input.send_keys(passwd)
-        
-        print("Clicking login button...")
-        driver.find_element(By.CLASS_NAME, 'btn_login').click()
-        
-        print("Waiting for login process...")
-        time.sleep(5)  
-        
-        print("Current URL:", driver.current_url)
-        
-        # 로그인 실패 확인
-        error_elements = driver.find_elements(By.CLASS_NAME, 'error')
-        if error_elements:
-            error_text = error_elements[0].text
-            print(f"Login error detected: {error_text}")
-            raise Exception(error_text or "로그인에 실패했습니다.")
-            
-        print("Login successful!")
-        return True
-        
     except Exception as e:
-        print(f"Login verification failed: {str(e)}")
+        print(f"Crawling failed: {str(e)}")
         raise e
-    
+
     finally:
         print("Closing browser...")
         driver.quit()
 
-def last_string_check(word):    #아스키(ASCII) 코드 공식에 따라 입력된 단어의 마지막 글자 받침 유무를 판단해서 뒤에 붙는 조사를 리턴하는 함수
+def filter_strings(arr, selection):
+    return [s for s in arr if f"{selection}" in s]
+
+def last_string_check(word):
+    if not word:
+        return ""
     last = word[-1]
-    criteria = (ord(last) - 44032) % 28
-    if criteria == 0:       #나머지가 0이면 받침이 없는 것
-        return '는'
-    else:                   #나머지가 0이 아니면 받침 있는 것
-        return '은'
+    if '가' <= last <= '힣':
+        if (ord(last) - ord('가')) % 28 > 0:
+            return '은'
+    return '는'
