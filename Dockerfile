@@ -1,10 +1,10 @@
 # Node.js 베이스 이미지
 FROM node:16
 
-# Python 및 Chrome 설치
-RUN apt-get update && apt-get install -y \
-    python3.9 \
-    python3.9-distutils \
+# 패키지 목록 업데이트
+RUN apt-get update && \
+    apt-get install -y \
+    python3 \
     python3-pip \
     chromium \
     chromium-driver \
