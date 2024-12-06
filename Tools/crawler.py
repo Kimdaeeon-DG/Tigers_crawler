@@ -38,15 +38,16 @@ def verify_login(id, passwd):
         time.sleep(3)  
 
         print("Finding login elements...")
-        id_input = driver.find_element(By.ID, 'id')
-        pw_input = driver.find_element(By.ID, 'passwd')
+        id_input = driver.find_element(By.ID, 'usr_id')
+        pw_input = driver.find_element(By.ID, 'usr_pw')
         
         print(f"Entering credentials for ID: {id}")
         id_input.send_keys(id)
         pw_input.send_keys(passwd)
         
         print("Clicking login button...")
-        driver.find_element(By.CLASS_NAME, 'btn_login').click()
+        login_button = driver.find_element(By.XPATH, '//*[@id="idLoginForm"]/div[1]/div[3]/button')
+        login_button.click()
         
         print("Waiting for login process...")
         time.sleep(5)  
@@ -84,15 +85,16 @@ def craw(id, passwd, year, semester):
         time.sleep(3)
 
         print("Finding login elements...")
-        id_input = driver.find_element(By.ID, 'id')
-        pw_input = driver.find_element(By.ID, 'passwd')
+        id_input = driver.find_element(By.ID, 'usr_id')
+        pw_input = driver.find_element(By.ID, 'usr_pw')
         
         print(f"Entering credentials for ID: {id}")
         id_input.send_keys(id)
         pw_input.send_keys(passwd)
         
         print("Clicking login button...")
-        driver.find_element(By.CLASS_NAME, 'btn_login').click()
+        login_button = driver.find_element(By.XPATH, '//*[@id="idLoginForm"]/div[1]/div[3]/button')
+        login_button.click()
         
         print("Waiting for login process...")
         time.sleep(5)
